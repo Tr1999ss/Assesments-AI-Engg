@@ -1,16 +1,4 @@
-"""
-ingest.py — Step 1-4 of RAG: Load -> Chunk -> Embed -> Store
 
-Run this whenever you add/change documents in the docs/ folder.
-
-Usage:
-    python ingest.py                # default chunk size (500 chars, 50 overlap)
-    python ingest.py --chunk-size 300 --overlap 50
-    python ingest.py --chunk-size 800 --overlap 100
-
-Try different chunk sizes and compare retrieval quality in query.py —
-that comparison is literally one of the things your mentor checks for.
-"""
 
 import argparse
 import glob
@@ -26,7 +14,6 @@ EMBED_MODEL = "nomic-embed-text"  # pull with: ollama pull nomic-embed-text
 
 
 def load_documents():
-    """Read every .md file in docs/ and return (filename, text) pairs."""
     docs = []
     for path in glob.glob(os.path.join(DOCS_DIR, "*.md")):
         with open(path, "r", encoding="utf-8") as f:
@@ -35,13 +22,6 @@ def load_documents():
 
 
 def chunk_text(text, chunk_size, overlap):
-    """
-    Split text into overlapping chunks of `chunk_size` characters.
-
-    Overlap matters: without it, a sentence that straddles a chunk
-    boundary gets cut in half and neither chunk contains the full
-    answer. Overlap gives each chunk a bit of its neighbor's context.
-    """
     chunks = []
     start = 0
     while start < len(text):
@@ -52,7 +32,6 @@ def chunk_text(text, chunk_size, overlap):
 
 
 def embed(text):
-    """Turn a chunk of text into a vector (list of numbers) using a local Ollama model."""
     response = ollama.embeddings(model=EMBED_MODEL, prompt=text)
     return response["embedding"]
 
