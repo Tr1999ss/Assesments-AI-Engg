@@ -16,7 +16,7 @@ is found — instead of making something up.
 | Embeddings & dense retrieval | `embed()` in both files, using Ollama's `nomic-embed-text` model |
 | Vector database | ChromaDB, stored locally in `chroma_db/` |
 | Similarity search & top-K | `retrieve()` in `query.py`, using cosine distance |
-| Grounded generation & citations | `generate_answer()` — the prompt forces the model to only use retrieved context and name its source |
+| Grounded generation & citations | `generate_answer()` in `query.py` — the prompt forces the model to only use retrieved context and name its source |
 | Saying "I don't know" | `SIMILARITY_FLOOR` check in `generate_answer()` — if nothing retrieved is close enough, the LLM is never even called |
 
 ## Requirements
@@ -31,100 +31,90 @@ is found — instead of making something up.
 > [python.org/downloads/release/python-3120](https://www.python.org/downloads/release/python-3120/)
 > — it installs alongside 3.13 without removing it.
 
-## Project structure
-
-```
-src/ragapp/
-├── cli.py             # main entry point — wires commands onto the Typer app
-├── config.py          # every setting in one place
-├── embeddings.py       # embed() — shared by ingest & query
-├── store.py            # all ChromaDB access, isolated (swap vector DBs here later)
-├── ingestion.py         # load_documents(), chunk_text() — pure logic
-├── retrieval.py          # retrieve(), generate_answer() — pure logic
-└── commands/
-    ├── ingest.py          # CLI wrapper around ingestion.py
-    └── query.py           # CLI wrapper around retrieval.py
-```
-
-Logic (`ingestion.py`, `retrieval.py`, `store.py`, `embeddings.py`) is separated from the CLI
-layer (`commands/`) on purpose — the logic functions don't know or care that they're being called
-from a terminal, which makes them easy to test or reuse later (e.g. behind a small web API).
-
-To add a new command later: write a function in `commands/your_command.py`, then register it in
-`cli.py` with one line (`app.command()(your_command)`).
-
 ## Setup
 
-1. **Install Ollama** and make sure it's running (check system tray, or `ollama serve`).
+1. **Install Ollama** (if you haven't): https://ollama.com/download — make sure it's actually
+   running (check your system tray, or run `ollama serve` in its own terminal window).
 
 2. **Pull the embedding model:**
    ```
    ollama pull nomic-embed-text
    ```
+   This is a small model whose only job is turning text into a vector (list of numbers) for
+   similarity search — different from a chat model. Your chat model can be anything you already
+   have pulled (`ollama list` to check) — set it in `query.py` via `CHAT_MODEL`.
 
-3. **Create a venv on Python 3.12** and activate it:
+3. **Create a venv using Python 3.12 specifically and activate it:**
    ```
    py -3.12 -m venv venv
    venv\Scripts\activate
    python --version    # should print Python 3.12.x
    ```
 
-4. **Install the package in editable mode** (this reads `pyproject.toml` and installs
-   `chromadb`, `ollama`, and `typer` automatically, plus gives you a `ragapp` command):
+4. **Install Python dependencies:**
    ```
-   pip install -e .
+   pip install -r requirements.txt
    ```
 
 ## Run it
 
+**Step 1 — Ingest the docs** (load → chunk → embed → store):
 ```
-ragapp ingest
-ragapp query "How do I rotate my API key?"
-ragapp --help              # Typer auto-generates this
-ragapp ingest --help       # ...and per-command help too
+python ingest.py
+```
+This processes everything in `docs/`. It ships with 3 sample SDK reference pages
+(`authentication.md`, `installation.md`, `jobs-api.md`) so you can test the pipeline immediately.
+Prints progress per chunk so any failure is easy to spot.
+
+**Step 2 — Ask questions:**
+```
+python query.py "How do I rotate my API key?"
+python query.py "How many times can I retry a failed job?"
+python query.py "What's the capital of France?"     # should say "I don't know"
 ```
 
-(If `ragapp` isn't recognized, use `python -m ragapp ingest` instead — same thing.)
-
-Each answer prints the retrieved chunks with their **distance** (lower = more similar — cosine
-distance ranges roughly 0 = identical meaning to 1+ = unrelated), then the final answer and which
-source file it came from.
+Each answer prints the retrieved chunks with their **distance** first (lower = more similar —
+cosine distance ranges roughly 0 = identical meaning to 1+ = unrelated), then the final answer
+and which source file it came from.
 
 ## Try different chunk sizes (mentor checkpoint item)
 
 Re-ingesting rebuilds the whole database from scratch with new settings:
 
 ```
-ragapp ingest --chunk-size 300 --overlap 50
-ragapp query "How do I rotate my API key?"
+python ingest.py --chunk-size 300 --overlap 50
+python query.py "How do I rotate my API key?"
 
-ragapp ingest --chunk-size 800 --overlap 100
-ragapp query "How do I rotate my API key?"
+python ingest.py --chunk-size 800 --overlap 100
+python query.py "How do I rotate my API key?"
 ```
 
 What to look for: smaller chunks tend to point more precisely at one specific idea, often giving
 a lower (better) distance for narrow questions. Bigger chunks carry more surrounding context in
-the answer, but mix multiple ideas into one vector, which can blur the match slightly. Note what
-you observe — that's exactly what your mentor will ask about.
+the answer, but mix multiple ideas into one vector, which can blur the match slightly. Write down
+what you actually observed — that's what your mentor will ask about Friday.
 
 ## Swap in your real SDK reference pages
 
 When you get the actual assignment documents:
 1. Drop your real `.md` files into `docs/` (delete the sample files if you want)
-2. Re-run `ragapp ingest`
+2. Re-run `python ingest.py`
 
 ## Troubleshooting
 
-- **`ragapp ingest` dies silently with no error, right after printing chunk counts** — this is
-  the Python 3.13 / onnxruntime crash described above. Switch to a Python 3.12 venv.
+- **`ingest.py` dies silently with no error, right after printing chunk counts** — this is the
+  Python 3.13 / onnxruntime crash described above. Switch to a Python 3.12 venv.
 - **Everything returns "I don't know" even for good questions** — check the collection is using
-  cosine distance (`metadata={"hnsw:space": "cosine"}` in `store.py`, already set there). If you
-  changed that, re-run `ragapp ingest` to rebuild the DB with the fix.
-- **`pip install -e .` fails trying to compile numpy from source** — same root cause as above;
-  the Python version doesn't have a pre-built wheel available. Use Python 3.12.
+  cosine distance (`metadata={"hnsw:space": "cosine"}` in `create_collection`, already set in
+  `ingest.py`). If you changed that, re-run `ingest.py` to rebuild the DB with the fix.
+- **`pip install` fails trying to compile numpy from source** — same root cause as above; the
+  Python version doesn't have a pre-built wheel available. Use Python 3.12.
 - **A script call to Ollama just hangs** — the Ollama background service probably isn't running.
-  Test directly: `Invoke-RestMethod -Uri http://localhost:11434/api/embeddings -Method Post -Body '{"model":"nomic-embed-text","prompt":"hello"}' -ContentType "application/json"` — if that
-  hangs too, start Ollama (open the app, or run `ollama serve`).
+  Test directly:
+  ```
+  Invoke-RestMethod -Uri http://localhost:11434/api/embeddings -Method Post -Body '{"model":"nomic-embed-text","prompt":"hello"}' -ContentType "application/json"
+  ```
+  If that hangs too, start Ollama (open the app, or run `ollama serve`).
 
 ## Mentor checklist coverage
 
