@@ -92,7 +92,7 @@ python query.py "How do I rotate my API key?"
 What to look for: smaller chunks tend to point more precisely at one specific idea, often giving
 a lower (better) distance for narrow questions. Bigger chunks carry more surrounding context in
 the answer, but mix multiple ideas into one vector, which can blur the match slightly. Write down
-what you actually observed — that's what your mentor will ask about Friday.
+what you actually observed 
 
 ## Swap in your real SDK reference pages
 
