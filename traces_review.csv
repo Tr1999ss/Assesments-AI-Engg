@@ -1,0 +1,196 @@
+trace_id,question,method,retrieved_sources,retrieved_preview,answer,sources_cited,failure_type,honest_note,problem_group
+0,How do I rotate my API key?,embedding,authentication.md; authentication.md; authentication.md,"recommend rotating them every 90 days. You can have up to
+two active keys at a t | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica | I keys can be scoped to `read`, `write`, or `admin`. Scope is set when the key i","You can allow zero-downtime rotation by having up to two active keys at one time. The rotation process is to generate a new key, update your application, and then revoke the old key. It is recommended to rotate keys every 90 days (Source: authentication.md).",authentication.md,,,
+1,How do I rotate my API key?,hybrid,authentication.md; authentication.md; authentication.md,"recommend rotating them every 90 days. You can have up to
+two active keys at a t | I keys can be scoped to `read`, `write`, or `admin`. Scope is set when the key i | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica","You can achieve zero-downtime rotation by following these steps: generate a new key, update your application, and then revoke the old key.
+
+Source: authentication.md",authentication.md,,,
+2,How do I rotate my API key?,embedding,authentication.md; authentication.md; authentication.md,"recommend rotating them every 90 days. You can have up to
+two active keys at a t | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica | I keys can be scoped to `read`, `write`, or `admin`. Scope is set when the key i","You can allow for zero-downtime rotation by following these steps: generate a new key, update your application, and then revoke the old key.
+
+Source: authentication.md",authentication.md,,,
+3,What Python version is required?,embedding,installation.md; installation.md; jobs-api.md,"# Installation & Quickstart
+
+## Requirements
+AcmeSDK requires Python 3.9 or late |  the base URL
+By default the SDK points to `https://api.acme.dev`. To use a diff | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa",I don't know — I couldn't find anything about that in the documents.,,,,
+4,How do I install the SDK?,embedding,installation.md; installation.md; authentication.md,"# Installation & Quickstart
+
+## Requirements
+AcmeSDK requires Python 3.9 or late |  the base URL
+By default the SDK points to `https://api.acme.dev`. To use a diff | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica",I don't know — I couldn't find anything about that in the documents.,,,,
+5,What job statuses exist?,embedding,jobs-api.md; jobs-api.md; jobs-api.md,"# Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa | s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli |  a webhook URL in the dashboard to receive `job.completed` and `job.failed` even",A job moves through the following statuses: `queued` $\rightarrow$ `running` $\rightarrow$ `completed` or `failed` (Source: jobs-api.md).,jobs-api.md,,,
+6,How do I delete a job?,embedding,jobs-api.md; jobs-api.md; jobs-api.md,"s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa |  a webhook URL in the dashboard to receive `job.completed` and `job.failed` even","Jobs can only be deleted once they have reached a terminal state (either `completed` or `failed`). To delete a job, use the function `client.jobs.delete(job_id)`. If you call this function on an active job, it will raise a `JobStillRunningError`.
+
+Source: jobs-api.md",jobs-api.md,,,
+7,"my key might be compromised, what do I do",embedding,authentication.md; authentication.md; authentication.md,"# Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica | I keys can be scoped to `read`, `write`, or `admin`. Scope is set when the key i | recommend rotating them every 90 days. You can have up to
+two active keys at a t",I don't know — I couldn't find anything about that in the documents.,,,,
+8,steps for zero downtime when swapping keys,embedding,authentication.md; authentication.md; jobs-api.md,"recommend rotating them every 90 days. You can have up to
+two active keys at a t | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica | s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli",I don't know — I couldn't find anything about that in the documents.,,,,
+9,does this work with python 3.8,embedding,installation.md; jobs-api.md; installation.md,"# Installation & Quickstart
+
+## Requirements
+AcmeSDK requires Python 3.9 or late | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa |  the base URL
+By default the SDK points to `https://api.acme.dev`. To use a diff",I don't know — I couldn't find anything about that in the documents.,,,,
+10,async support?,embedding,installation.md; authentication.md; installation.md,"valid, and confirms network connectivity
+to the API.
+ | recommend rotating them every 90 days. You can have up to
+two active keys at a t | # Installation & Quickstart
+
+## Requirements
+AcmeSDK requires Python 3.9 or late",I don't know — I couldn't find anything about that in the documents.,,,,
+11,what happens when a job fails,embedding,jobs-api.md; jobs-api.md; jobs-api.md,"s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa |  a webhook URL in the dashboard to receive `job.completed` and `job.failed` even","When a job fails, the following occurs:
+
+*   **Status:** The job moves to the `failed` status (Source: jobs-api.md).
+*   **Terminal State:** The job reaches a terminal state, meaning it can only be deleted once it has reached the `failed` state (Source: jobs-api.md).
+*   **Notifications:** You can receive notification of the failure by registering a webhook URL to receive the `job.failed` event (Source: jobs-api.md).
+*   **Automatic Retries:** Failed jobs are not retried automatically (Source: jobs-api.md; Source: jobs-api.md).
+*   **Manual Retries:** To requeue a failed job, you must call `client.jobs.retry(job_id)` (Source: jobs-api.md).
+*   **Retry Limit:** A job can be retried up to 5 times; after this limit, it is permanently marked `failed` and must be recreated (Source: jobs-api.md).
+
+Sources:
+*   [Source: jobs-api.md] (Multiple instances)",jobs-api.md,,,
+12,job retry limit,embedding,jobs-api.md; authentication.md; jobs-api.md,"s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | recommend rotating them every 90 days. You can have up to
+two active keys at a t | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa","A job can be retried up to 5 times; after that, it is permanently marked `failed` and must be recreated.
+
+Source: jobs-api.md",jobs-api.md; authentication.md,,,
+13,can I cancel a running job,embedding,jobs-api.md; jobs-api.md; jobs-api.md,"s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa |  a webhook URL in the dashboard to receive `job.completed` and `job.failed` even",I don't know — I couldn't find anything about that in the documents.,,,,
+14,what does 429 mean,embedding,authentication.md; installation.md; authentication.md,"# Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica |  the base URL
+By default the SDK points to `https://api.acme.dev`. To use a diff | recommend rotating them every 90 days. You can have up to
+two active keys at a t",I don't know — I couldn't find anything about that in the documents.,,,,
+15,what is X-Acme-Signature,embedding,jobs-api.md; authentication.md; installation.md," a webhook URL in the dashboard to receive `job.completed` and `job.failed` even | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica | # Installation & Quickstart
+
+## Requirements
+AcmeSDK requires Python 3.9 or late",I don't know — I couldn't find anything about that in the documents.,,,,
+16,JobStillRunningError,embedding,jobs-api.md; jobs-api.md; jobs-api.md,"s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa |  a webhook URL in the dashboard to receive `job.completed` and `job.failed` even",I don't know — I couldn't find anything about that in the documents.,,,,
+17,hi,embedding,jobs-api.md; authentication.md; installation.md,"# Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa | # Authentication
+
+## Overview
+All requests to the AcmeSDK API must be authentica | valid, and confirms network connectivity
+to the API.
+",I don't know — I couldn't find anything about that in the documents.,,,,
+18,help,embedding,jobs-api.md; jobs-api.md; installation.md,"s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa |  the base URL
+By default the SDK points to `https://api.acme.dev`. To use a diff",I don't know — I couldn't find anything about that in the documents.,,,,
+19,what can you do,embedding,jobs-api.md; jobs-api.md; authentication.md,"# Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa | s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | I keys can be scoped to `read`, `write`, or `admin`. Scope is set when the key i",I don't know — I couldn't find anything about that in the documents.,,,,
+20,what's the weather today,embedding,jobs-api.md; jobs-api.md; installation.md,"# Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa | s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | valid, and confirms network connectivity
+to the API.
+",I don't know — I couldn't find anything about that in the documents.,,,,
+21,who won the world cup,embedding,jobs-api.md; installation.md; jobs-api.md," a webhook URL in the dashboard to receive `job.completed` and `job.failed` even | valid, and confirms network connectivity
+to the API.
+ | # Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa",I don't know — I couldn't find anything about that in the documents.,,,,
+22,what's your favorite color,embedding,jobs-api.md; jobs-api.md; installation.md,"# Jobs API
+
+## Creating a job
+```python
+client.jobs.create(name=""my-job"", payloa | s.
+
+## Retrying failed jobs
+Failed jobs are not retried automatically. Call `cli | valid, and confirms network connectivity
+to the API.
+",I don't know — I couldn't find anything about that in the documents.,,,,
