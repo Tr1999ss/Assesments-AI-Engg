@@ -1,7 +1,6 @@
-# Ask My Docs — local RAG app (Developer Docs track, Week 3)
+# Ask My Docs — local & cloud RAG app (Developer Docs track, Weeks 3-5)
 
-A minimal "ask my documents" app that runs 100% locally using Ollama — no API keys, no cost,
-no data leaving your machine.
+A "ask my documents" app that can run 100% locally using Ollama, or use cloud models via OpenRouter (to avoid Out Of Memory crashes).
 
 Given a question, it finds the most relevant chunks from your documents, answers **only** using
 those chunks, names which file the answer came from, and says "I don't know" if nothing relevant
@@ -18,6 +17,9 @@ is found — instead of making something up.
 | Similarity search & top-K | `retrieve()` in `query.py`, using cosine distance |
 | Grounded generation & citations | `generate_answer()` in `query.py` — the prompt forces the model to only use retrieved context and name its source |
 | Saying "I don't know" | `SIMILARITY_FLOOR` check in `generate_answer()` — if nothing retrieved is close enough, the LLM is never even called |
+| LLM Provider toggling | `query.py` uses `.env` configuration to seamlessly switch between local Ollama and cloud OpenRouter for generation. |
+| Evaluation (Week 4) | `eval_golden.py` tests both retrieval and generation accuracy on tricky edge cases. |
+| Error Analysis (Week 5) | `export_traces.py` dumps raw request logs into a CSV for manual open-coding and taxonomy creation. |
 
 ## Requirements
 
@@ -41,17 +43,26 @@ is found — instead of making something up.
    ollama pull nomic-embed-text
    ```
    This is a small model whose only job is turning text into a vector (list of numbers) for
-   similarity search — different from a chat model. Your chat model can be anything you already
-   have pulled (`ollama list` to check) — set it in `query.py` via `CHAT_MODEL`.
+   similarity search. Your database is built using this, so keep Ollama running for retrieval.
 
-3. **Create a venv using Python 3.12 specifically and activate it:**
+3. **Configure your LLM provider (.env):**
+   Create a `.env` file (or edit the existing one) to choose whether to generate answers locally or via OpenRouter:
+   ```env
+   # Set PROVIDER to "openrouter" or "ollama"
+   PROVIDER=openrouter
+   OPENROUTER_API_KEY=your_key_here
+   OPENROUTER_MODEL=google/gemini-2.5-flash
+   OLLAMA_CHAT_MODEL=gemma4:latest
+   ```
+
+4. **Create a venv using Python 3.12 specifically and activate it:**
    ```
    py -3.12 -m venv venv
    venv\Scripts\activate
    python --version    # should print Python 3.12.x
    ```
 
-4. **Install Python dependencies:**
+5. **Install Python dependencies:**
    ```
    pip install -r requirements.txt
    ```
@@ -69,13 +80,35 @@ Prints progress per chunk so any failure is easy to spot.
 **Step 2 — Ask questions:**
 ```
 python query.py "How do I rotate my API key?"
-python query.py "How many times can I retry a failed job?"
+python query.py "How many times can I retry a failed job?" --provider ollama
 python query.py "What's the capital of France?"     # should say "I don't know"
 ```
 
 Each answer prints the retrieved chunks with their **distance** first (lower = more similar —
 cosine distance ranges roughly 0 = identical meaning to 1+ = unrelated), then the final answer
 and which source file it came from.
+
+## Evaluation & Error Analysis (Weeks 4 & 5)
+
+**Run the Golden Set Evaluation (Week 4):**
+Test the pipeline against the tricky, hand-curated questions in `golden_set.py`:
+```bash
+python eval_golden.py --method embedding
+python eval_golden.py --method hybrid
+```
+
+**Generate Batch Traces:**
+Run a realistic mix of questions and log the inputs/outputs to `traces.jsonl`:
+```bash
+python batch_run.py --method hybrid
+```
+
+**Export Traces for Manual Review (Week 5):**
+Convert the JSONL logs into a CSV spreadsheet so you can perform open-coding and taxonomy grouping:
+```bash
+python export_traces.py --sample 20
+```
+This generates `traces_review.csv` with empty columns (`failure_type`, `honest_note`, `problem_group`) ready for your manual review.
 
 ## Try different chunk sizes (mentor checkpoint item)
 
