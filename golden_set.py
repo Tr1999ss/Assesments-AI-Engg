@@ -130,4 +130,76 @@ GOLDEN_SET = [
                 "retrieval actually helps vs plain embeddings (this was a "
                 "known miss in the Week 4 trace review).",
     },
+
+    # ---------- installation.md coverage ----------
+    {
+        "question": "Does AcmeSDK work with Python 3.8?",
+        "expected_source": "installation.md",
+        "expected_keywords": ["3.9"],
+        "trap_keywords": ["yes", "supported"],
+        "note": "Doc says 3.9 or later. A model that says 'yes' to 3.8 is "
+                "hallucinating backwards compatibility. Tests boundary reading.",
+    },
+    {
+        "question": "How can I check if my environment is set up correctly?",
+        "expected_source": "installation.md",
+        "expected_keywords": ["doctor"],
+        "trap_keywords": [],
+        "note": "Tests whether the model finds the 'acme-sdk doctor' CLI command "
+                "instead of giving a generic 'check your Python version' answer.",
+    },
+    {
+        "question": "What's the default API endpoint if I don't configure anything?",
+        "expected_source": "installation.md",
+        "expected_keywords": ["api.acme.dev"],
+        "trap_keywords": [],
+        "note": "Exact URL recall from the base_url configuration section.",
+    },
+
+    # ---------- jobs-api.md coverage ----------
+    {
+        "question": "Are failed jobs retried automatically?",
+        "expected_source": "jobs-api.md",
+        "expected_keywords": ["not"],
+        "trap_keywords": ["automatically retried", "yes"],
+        "note": "Doc explicitly says 'Failed jobs are not retried automatically.' "
+                "A model that says yes is hallucinating a common default from "
+                "other job queue systems.",
+    },
+    {
+        "question": "What happens if I try to delete a job that's still running?",
+        "expected_source": "jobs-api.md",
+        "expected_keywords": ["JobStillRunningError"],
+        "trap_keywords": ["cancelled", "stopped"],
+        "note": "Tests exact error name recall. A model might assume delete "
+                "cancels the job, but the doc says it raises an error instead.",
+    },
+    {
+        "question": "What priority levels can I set when creating a job?",
+        "expected_source": "jobs-api.md",
+        "expected_keywords": ["low", "normal", "high"],
+        "trap_keywords": ["critical", "urgent"],
+        "note": "All three values must appear. Tests complete enumeration from "
+                "the doc rather than guessing common priority names.",
+    },
+    {
+        "question": "How do I know when a job finishes without constantly polling?",
+        "expected_source": "jobs-api.md",
+        "expected_keywords": ["webhook"],
+        "trap_keywords": [],
+        "note": "The doc offers webhooks as the alternative to polling. Tests "
+                "whether the model identifies the event-driven option.",
+    },
+
+    # ---------- cross-doc confusion trap ----------
+    {
+        "question": "What header should I check to verify a webhook payload is authentic?",
+        "expected_source": "jobs-api.md",
+        "expected_keywords": ["X-Acme-Signature"],
+        "trap_keywords": ["Authorization", "Bearer"],
+        "note": "Tests whether the model confuses the webhook signature header "
+                "(X-Acme-Signature from jobs-api.md) with the Authorization "
+                "header (from authentication.md). Both docs mention headers "
+                "but for completely different purposes.",
+    },
 ]

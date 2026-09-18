@@ -1,16 +1,29 @@
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
 import chromadb
 import ollama
+from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
+
+# Load .env file (keeps secrets out of your shell history)
+load_dotenv()
 
 CHROMA_PATH = "chroma_db"
 COLLECTION_NAME = "dev_docs"
-EMBED_MODEL = "nomic-embed-text"
-CHAT_MODEL = "gemma4:latest"  # matches what "ollama list" shows on this machine
+EMBED_MODEL = "nomic-embed-text"  # always Ollama — matches existing chroma_db vectors
+
+# --- Provider configuration ---
+# Set PROVIDER to "openrouter" (in .env or shell) to use a cloud model,
+# or leave it as "ollama" to use your local model.
+PROVIDER = os.getenv("PROVIDER", "ollama")  # "ollama" or "openrouter"
+OLLAMA_CHAT_MODEL = os.getenv("OLLAMA_CHAT_MODEL", "gemma4:latest")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
 TOP_K = 3
 SIMILARITY_FLOOR = 0.35
 TRACES_FILE = "traces.jsonl"
@@ -95,8 +108,60 @@ RETRIEVERS = {
 }
 
 
-def generate_answer(question, retrieved):
-    """Ask the local LLM to answer ONLY from the retrieved chunks, and cite the source."""
+def _build_prompt(question, context):
+    """Build the system + user prompt used by both providers."""
+    return f"""You are a documentation assistant. Answer the question using ONLY the context below.
+If the answer is not contained in the context, say "I don't know" — do not make anything up.
+Always mention which source file(s) your answer came from.
+
+Context:
+{context}
+
+Question: {question}
+
+Answer:"""
+
+
+def _generate_ollama(prompt):
+    """Generate an answer using the local Ollama model."""
+    response = ollama.chat(
+        model=OLLAMA_CHAT_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response["message"]["content"]
+
+
+def _generate_openrouter(prompt):
+    """Generate an answer using OpenRouter (OpenAI-compatible API)."""
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=OPENROUTER_API_KEY,
+    )
+    response = client.chat.completions.create(
+        model=OPENROUTER_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=1024,
+    )
+    return response.choices[0].message.content
+
+
+GENERATORS = {
+    "ollama": _generate_ollama,
+    "openrouter": _generate_openrouter,
+}
+
+
+def generate_answer(question, retrieved, provider=None):
+    """
+    Ask the LLM to answer ONLY from the retrieved chunks, and cite the source.
+
+    provider: "ollama" or "openrouter". Defaults to the PROVIDER env var / config.
+    """
+    provider = provider or PROVIDER
+    print(f"Generating answer using provider={provider} (model={OPENROUTER_MODEL if provider == 'openrouter' else OLLAMA_CHAT_MODEL})")
+
     best_distance = min(d for _, _, d in retrieved)
     if best_distance > SIMILARITY_FLOOR:
         return "I don't know — I couldn't find anything about that in the documents.", []
@@ -108,23 +173,12 @@ def generate_answer(question, retrieved):
         used_sources.append(source)
 
     context = "\n\n---\n\n".join(context_blocks)
+    prompt = _build_prompt(question, context)
 
-    prompt = f"""You are a documentation assistant. Answer the question using ONLY the context below.
-If the answer is not contained in the context, say "I don't know" — do not make anything up.
-Always mention which source file(s) your answer came from.
+    generate_fn = GENERATORS[provider]
+    content = generate_fn(prompt)
 
-Context:
-{context}
-
-Question: {question}
-
-Answer:"""
-
-    response = ollama.chat(
-        model=CHAT_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response["message"]["content"], list(dict.fromkeys(used_sources))
+    return content, list(dict.fromkeys(used_sources))
 
 
 def log_trace(question, method, retrieved, answer, sources):
@@ -159,10 +213,19 @@ def main():
         help="Retrieval method to use. Default: embedding (same as before)."
     )
     parser.add_argument(
+        "--provider", choices=list(GENERATORS.keys()), default=None,
+        help=f"LLM provider for answer generation. Default: from .env or 'ollama'. "
+             f"Current default: {PROVIDER}"
+    )
+    parser.add_argument(
         "--no-log", action="store_true",
         help="Skip writing this query to traces.jsonl."
     )
     args = parser.parse_args()
+
+    provider = args.provider or PROVIDER
+    print(f"Using provider: {provider} "
+          f"(model: {OPENROUTER_MODEL if provider == 'openrouter' else OLLAMA_CHAT_MODEL})")
 
     client = chromadb.PersistentClient(path=CHROMA_PATH)
     collection = client.get_collection(COLLECTION_NAME)
@@ -174,7 +237,7 @@ def main():
     for chunk, source, distance in retrieved:
         print(f"[{source}] distance={distance:.3f}\n{chunk[:120]}...\n")
 
-    answer, sources = generate_answer(args.question, retrieved)
+    answer, sources = generate_answer(args.question, retrieved, provider=provider)
 
     print("--- Answer ---")
     print(answer)
