@@ -1,0 +1,50 @@
+You are helping me build the Week 6 "Evals" deliverable for my RAG app. Work in small phases and stop for my confirmation after each one. Do not build everything at once.
+
+## Context
+- My app: [TRACK + DOMAIN, e.g. "Track C: HR policy question answering"]
+- I already have traces.jsonl from earlier weeks. Each trace has: question, method, retrieved (list of {source, chunk_preview}), answer, sources (cited sources).
+- I already have export_traces.py, which exports traces to traces_review.csv with columns: trace_id, question, method, retrieved_sources, retrieved_preview, answer, sources_cited, failure_type (retrieval_failure / generation_failure / success), honest_note, problem_group. I filled in failure_type, honest_note and problem_group by hand in Weeks 4-5.
+- First, read my codebase to find how the app answers a question (the function to call) and how it calls the LLM. Reuse my existing LLM client. Do not add new frameworks unless I approve.
+
+## Goal (three deliverables)
+1. A test set that runs with ONE command (e.g. `python run_evals.py`) and scores my app's answers.
+2. A validated LLM judge. I must confirm it agrees with my own hand grading before its numbers are trusted.
+3. A before/after score, broken down per problem type, showing one improvement helped.
+
+## Phase 1: Eval set
+- Create eval_set.jsonl. Each case has: id, question, problem_type, expected_behavior (e.g. must_cite_source / must_refuse / must_contain_fact), and optional expected_source or expected_facts.
+- Build it from traces_review.csv: every row where failure_type != success becomes a permanent regression test, and problem_type = my problem_group. Also add some passing cases so I can detect breakage.
+- Write a script that generates a first draft from the CSV. I will review and edit the file by hand. Do not invent questions or expected answers that are not grounded in my data. Flag anything you had to guess.
+
+## Phase 2: Rule-based assertion checks (do these first, they are free)
+- Implement simple deterministic checks in checks.py, for example: a source is cited, the cited source is in the retrieved sources, it refused when it should have, an expected fact or keyword is present, and the answer is not empty.
+- Each check returns pass/fail (binary).
+
+## Phase 3: LLM-as-judge (only for things rules can't check, like tone and helpfulness)
+- Write judge.py with a G-Eval-style prompt: explicit criteria, short reasoning steps, then a BINARY verdict (pass/fail) plus a one-line reason. Use JSON output and parse it safely.
+- Keep the judge prompt in its own file so I can tune it.
+- Judge criteria for my domain: [e.g. "Is the answer faithful to the retrieved policy text, and is the tone appropriate?"]
+
+## Phase 4: Judge validation (critical)
+- Write validate_judge.py that:
+  1. Exports 20-30 answers to judge_validation.csv with an empty `human_label` column (pass/fail) for ME to fill in by hand. Do NOT label these yourself.
+  2. After I fill it in, runs the judge on the same rows and reports agreement % and Cohen's kappa. Include a confusion matrix, and list the disagreements so I can see where the judge is wrong.
+- Give me a loop: I tune the judge prompt, re-run, and check agreement improves. Tell me a sensible threshold (e.g. ~80%+) but let me decide.
+
+## Phase 5: Runner and before/after
+- run_evals.py runs the app on every case, applies rule checks and the validated judge, and saves results to results/<run_name>.json.
+- It prints a table per problem_type with pass rate, plus an overall pass rate.
+- compare_runs.py takes two result files (before, after) and prints a table: problem_type | before | after | delta. Make sure regressions (negative deltas) are clearly visible.
+- Optional, if simple: add RAGAS metrics (faithfulness, answer relevancy, context precision, context recall) as extra columns. Skip them if they add heavy dependencies and tell me why.
+
+## Phase 6: One improvement
+- Suggest 2-3 small improvements aimed at my biggest failing problem_type (for example a prompt change or retrieval tweak). I will pick one. Then run before and after and produce the delta table.
+
+## Rules
+- Simple, readable Python. Comments that explain WHY, not just what.
+- Fixed random seeds and temperature 0 for the judge where possible.
+- No fabricated data, labels or scores. If something is missing, ask me.
+- At the end, write a short README with the exact commands to run everything, so a mentor can run the test set with one command.
+- Finish each phase by telling me what to check and what the next phase is. Wait for my go-ahead.
+
+Start with Phase 1: inspect the repo and show me your plan before writing code.

@@ -156,3 +156,6 @@ When you get the actual assignment documents:
 - [x] Says "I don't know" for out-of-scope questions (similarity floor + cosine distance)
 - [ ] Tried more than one chunk size and noted the difference — **do this yourself, see above,
       and write down what you observed**
+
+
+
