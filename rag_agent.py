@@ -28,10 +28,70 @@ TRACES_FILE = "traces.jsonl"
 AGENT_MAX_STEPS = 4          # never more than 4 tool calls before forcing an answer
 AGENT_TOKEN_BUDGET = 3000    # bail if we've burned this many tokens
 
+# --- long-term memory (a hand-built mem0-style store) ---
+MEMORY_FILE = "agent_memory.json"
+MEMORY_RECALL_FLOOR = 0.85   # cosine similarity above this = "close enough, reuse it"
+
 
 def embed(text):
     response = ollama.embeddings(model=EMBED_MODEL, prompt=text)
     return response["embedding"]
+
+
+# ---------------------------------------------------------------
+# LONG-TERM MEMORY — persists ACROSS runs of this script (unlike the
+# `messages` list in run_agent_rag, which only lives for one question).
+# This is what mem0 does for you automatically; here it's four functions
+# and a JSON file: store facts, embed them, retrieve by similarity, done.
+# ---------------------------------------------------------------
+
+def _cosine_similarity(a, b):
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(y * y for y in b) ** 0.5
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def load_memory():
+    if not Path(MEMORY_FILE).exists():
+        return []
+    with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def save_memory_entry(question, answer, sources):
+    """Called once the agent has a final answer — this is the 'remember this
+    for next time' step. A real mem0 setup would also ask an LLM whether this
+    fact contradicts/updates something already stored; we skip that here and
+    just append, which is the simplification worth knowing you made."""
+    entry = {
+        "question": question,
+        "question_embedding": embed(question),
+        "answer": answer,
+        "sources": sources,
+        "timestamp": time.time(),
+    }
+    with open(MEMORY_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def recall_memory(query, floor=MEMORY_RECALL_FLOOR):
+    """Return the closest past Q/A pair if it's similar enough, else None."""
+    entries = load_memory()
+    if not entries:
+        return None
+    query_vec = embed(query)
+    best, best_score = None, -1.0
+    for e in entries:
+        score = _cosine_similarity(query_vec, e["question_embedding"])
+        if score > best_score:
+            best, best_score = e, score
+    if best_score >= floor:
+        return {"question": best["question"], "answer": best["answer"],
+                "sources": best["sources"], "similarity": round(best_score, 3)}
+    return None
 
 
 # ---------- retrieval methods (unchanged — these ARE the agent's tools too) ----------
@@ -165,6 +225,23 @@ AGENT_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "recall_memory",
+            "description": (
+                "Check whether a similar question has already been answered before, "
+                "from long-term memory. Cheap — try this FIRST, before retrieve. "
+                "If it returns a close match, you can often answer straight from it "
+                "instead of retrieving again."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "final_answer",
             "description": "Call once you have enough context to answer, or to say you don't know.",
             "parameters": {
@@ -180,12 +257,13 @@ AGENT_TOOLS = [
 ]
 
 AGENT_SYSTEM_PROMPT = (
-    "You are a documentation assistant with a `retrieve` tool. Call retrieve as "
-    "many times as needed (different method and/or a reformulated query) until "
-    "you have enough context, then call final_answer with the answer and the "
-    "source files you used. If, after a couple of tries, nothing relevant turns "
-    "up, call final_answer with 'I don't know'. Never answer from outside the "
-    "retrieved context."
+    "You are a documentation assistant with `recall_memory` and `retrieve` tools. "
+    "Try recall_memory first — if it returns a close match, you may use it directly "
+    "for final_answer. Otherwise call retrieve as many times as needed (different "
+    "method and/or a reformulated query) until you have enough context, then call "
+    "final_answer with the answer and the source files you used. If, after a couple "
+    "of tries, nothing relevant turns up, call final_answer with 'I don't know'. "
+    "Never answer from outside the retrieved context or memory."
 )
 
 
@@ -225,7 +303,19 @@ def run_agent_rag(question, collection):
 
             if call.function.name == "final_answer":
                 steps.append({"tool": "final_answer", "args": args})
+                save_memory_entry(question, args["answer"], args.get("sources", []))
                 return args["answer"], args.get("sources", []), steps
+
+            if call.function.name == "recall_memory":
+                hit = recall_memory(args["query"])
+                observation = hit if hit else {"result": "no similar past question found"}
+                steps.append({"tool": "recall_memory", "args": args, "observation": observation})
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "content": json.dumps(observation),
+                })
+                continue
 
             if call.function.name == "retrieve":
                 retrieve_fn = RETRIEVERS[args["method"]]
