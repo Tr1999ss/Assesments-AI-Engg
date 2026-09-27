@@ -1,0 +1,40 @@
+{
+  "fixed": null,
+  "agent": {
+    "mode": "agent",
+    "total_runs": 29,
+    "runs_with_token_data": 25,
+    "runs_missing_token_data": 4,
+    "mean_tokens": 1676.3,
+    "min_tokens": 1218,
+    "max_tokens": 2773,
+    "p99_tokens": 2571.9,
+    "all_token_counts": [
+      1218,
+      1233,
+      1236,
+      1240,
+      1243,
+      1274,
+      1302,
+      1450,
+      1686,
+      1728,
+      1765,
+      1769,
+      1770,
+      1772,
+      1774,
+      1780,
+      1808,
+      1819,
+      1850,
+      1862,
+      1867,
+      1875,
+      1879,
+      1935,
+      2773
+    ]
+  }
+}
