@@ -1,9 +1,9 @@
 {
   "step": 1,
-  "timestamp": 1790501066.9276013,
-  "correct": 4,
+  "timestamp": 1790509759.5085237,
+  "correct": 5,
   "total": 7,
-  "accuracy": 0.5714,
+  "accuracy": 0.7143,
   "results": [
     {
       "id": "T1",
@@ -14,14 +14,14 @@
         "bm25"
       ],
       "correct": true,
-      "answer_preview": "When an API key is missing, invalid, or revoked, the API returns a `401 Unauthorized` HTTP status code.",
+      "answer_preview": "When an API key is missing, invalid, or revoked, the API returns a `401 Unauthorized` HTTP status code. This indicates a",
       "sources": [],
       "steps": [
         {
           "tool": "retrieve",
           "args": {
-            "method": "bm25",
-            "query": "HTTP status code missing or revoked API key"
+            "query": "API key missing or revoked HTTP status code",
+            "method": "bm25"
           },
           "observation": {
             "best_distance": 0.079,
@@ -53,30 +53,86 @@
           "stop_reason": "model answered without calling final_answer",
           "tokens": {
             "prompt": 727,
-            "completion": 26,
-            "total": 753
+            "completion": 41,
+            "total": 768
           }
         }
       ],
-      "tokens": 1240,
-      "seconds": 5.812
+      "tokens": 1255,
+      "seconds": 5.818
     },
     {
       "id": "T2",
       "question": "What does it mean that scope is a property of the key, not the request?",
       "expected_method": "embedding",
+      "actual_first_method": "embedding",
+      "all_methods": [
+        "embedding"
+      ],
+      "correct": true,
+      "answer_preview": "Scope is a characteristic associated with the API key itself, not with individual requests made using that key. This mea",
+      "sources": [],
+      "steps": [
+        {
+          "tool": "retrieve",
+          "args": {
+            "method": "embedding",
+            "query": "scope is a property of the key not the request"
+          },
+          "observation": {
+            "best_distance": 0.249,
+            "chunks": [
+              {
+                "source": "authentication.md",
+                "distance": 0.249,
+                "text": "als.\nThe AcmeSDK API expects the credential to be supplied using the documented\nAuthorization header format.\n\n### Scope and key lifecycle\n\nScope is a property of the API key, not of an individual request.\n\nA key created with `read` scope does not become a `write` key because the\nrequest contains a d"
+              },
+              {
+                "source": "authentication.md",
+                "distance": 0.316,
+                "text": "## Authentication-related edge cases\n\nAuthentication and authorization are related but are not interchangeable.\n\nA request can be authenticated successfully while still being rejected because\nthe API key does not have sufficient scope. In that case, the key itself may be\nvalid even though the reques"
+              },
+              {
+                "source": "authentication.md",
+                "distance": 0.341,
+                "text": "rite` key can authenticate successfully but cannot perform an\n  administrative operation.\n- An invalid, missing, or revoked key is an authentication failure and returns\n  `401 Unauthorized`.\n\nDo not infer the required scope from the HTTP status code alone. The scope\nrequirement depends on the operat"
+              }
+            ]
+          },
+          "tokens": {
+            "prompt": 473,
+            "completion": 14,
+            "total": 487
+          }
+        },
+        {
+          "stop_reason": "model answered without calling final_answer",
+          "tokens": {
+            "prompt": 697,
+            "completion": 128,
+            "total": 825
+          }
+        }
+      ],
+      "tokens": 1312,
+      "seconds": 3.587
+    },
+    {
+      "id": "T3",
+      "question": "How do I call retry on a failed job using the client object?",
+      "expected_method": "bm25",
       "actual_first_method": "hybrid",
       "all_methods": [
         "hybrid"
       ],
       "correct": false,
-      "answer_preview": "This means that the permissions (scope) associated with an API key are determined when the key is created, and these per",
+      "answer_preview": "You can retry a failed job by calling `client.jobs.retry(job_id)`. A job can be retried up to 5 times. After 5 retries, ",
       "sources": [],
       "steps": [
         {
           "tool": "recall_memory",
           "args": {
-            "query": "scope is a property of the key, not the request"
+            "query": "How do I call retry on a failed job using the client object?"
           },
           "observation": {
             "result": "no similar past question found"
@@ -86,137 +142,7 @@
           "tool": "retrieve",
           "args": {
             "method": "hybrid",
-            "query": "scope property of key not request"
-          },
-          "observation": {
-            "best_distance": 0.231,
-            "chunks": [
-              {
-                "source": "authentication.md",
-                "distance": 0.231,
-                "text": "als.\nThe AcmeSDK API expects the credential to be supplied using the documented\nAuthorization header format.\n\n### Scope and key lifecycle\n\nScope is a property of the API key, not of an individual request.\n\nA key created with `read` scope does not become a `write` key because the\nrequest contains a d"
-              },
-              {
-                "source": "authentication.md",
-                "distance": 0.237,
-                "text": "## Authentication-related edge cases\n\nAuthentication and authorization are related but are not interchangeable.\n\nA request can be authenticated successfully while still being rejected because\nthe API key does not have sufficient scope. In that case, the key itself may be\nvalid even though the reques"
-              },
-              {
-                "source": "authentication.md",
-                "distance": 0.237,
-                "text": "rite` key can authenticate successfully but cannot perform an\n  administrative operation.\n- An invalid, missing, or revoked key is an authentication failure and returns\n  `401 Unauthorized`.\n\nDo not infer the required scope from the HTTP status code alone. The scope\nrequirement depends on the operat"
-              }
-            ]
-          },
-          "tokens": {
-            "prompt": 497,
-            "completion": 10,
-            "total": 507
-          }
-        },
-        {
-          "stop_reason": "model answered without calling final_answer",
-          "tokens": {
-            "prompt": 717,
-            "completion": 223,
-            "total": 940
-          }
-        }
-      ],
-      "tokens": 1935,
-      "seconds": 5.835
-    },
-    {
-      "id": "T3",
-      "question": "How do I call retry on a failed job using the client object?",
-      "expected_method": "bm25",
-      "actual_first_method": "bm25",
-      "all_methods": [
-        "bm25"
-      ],
-      "correct": true,
-      "answer_preview": "To retry a failed job, use the `client.jobs.retry(job_id)` method. A job can be retried up to 5 times. After 5 retries, ",
-      "sources": [],
-      "steps": [
-        {
-          "tool": "recall_memory",
-          "args": {
-            "query": "How to retry a failed job with client object?"
-          },
-          "observation": {
-            "result": "no similar past question found"
-          }
-        },
-        {
-          "tool": "retrieve",
-          "args": {
-            "query": "retry failed job client object",
-            "method": "bm25"
-          },
-          "observation": {
-            "best_distance": 0.151,
-            "chunks": [
-              {
-                "source": "jobs-api.md",
-                "distance": 0.151,
-                "text": "# Jobs API\n\n## Creating a job\n```python\nclient.jobs.create(name=\"my-job\", payload={\"key\": \"value\"}, priority=\"normal\")\n```\n\n`priority` accepts `low`, `normal`, or `high`. Jobs default to `normal` priority if not specified.\n\n## Job statuses\nA job moves through the following statuses: `queued` -> `run"
-              },
-              {
-                "source": "jobs-api.md",
-                "distance": 0.178,
-                "text": "s.\n\n## Retrying failed jobs\nFailed jobs are not retried automatically. Call `client.jobs.retry(job_id)` to requeue a failed job.\nA job can be retried up to 5 times; after that it is permanently marked `failed` and must be\nrecreated.\n\n## Deleting jobs\nJobs can only be deleted once they reach a termin"
-              },
-              {
-                "source": "installation.md",
-                "distance": 0.279,
-                "text": "# Installation & Quickstart\n\n## Requirements\nAcmeSDK requires Python 3.9 or later. It is tested on Python 3.9 through 3.12.\n\n## Installing the SDK\nInstall via pip:\n\n```\npip install acme-sdk\n```\n\nFor async support, install the extras:\n\n```\npip install acme-sdk[async]\n```\n\n## Quickstart\n```python\nfrom"
-              }
-            ]
-          },
-          "tokens": {
-            "prompt": 493,
-            "completion": 11,
-            "total": 504
-          }
-        },
-        {
-          "stop_reason": "model answered without calling final_answer",
-          "tokens": {
-            "prompt": 789,
-            "completion": 73,
-            "total": 862
-          }
-        }
-      ],
-      "tokens": 1850,
-      "seconds": 4.645
-    },
-    {
-      "id": "T4",
-      "question": "How does webhook event delivery work for job status changes?",
-      "expected_method": "embedding",
-      "actual_first_method": "hybrid",
-      "all_methods": [
-        "hybrid"
-      ],
-      "correct": false,
-      "answer_preview": "Webhook event delivery for job status changes works by sending `job.completed` and `job.failed` events to a webhook URL ",
-      "sources": [],
-      "steps": [
-        {
-          "tool": "recall_memory",
-          "args": {
-            "query": "How does webhook event delivery work for job status changes?"
-          },
-          "observation": {
-            "result": "no similar past question found"
-          }
-        },
-        {
-          "tool": "retrieve",
-          "args": {
-            "query": "webhook event delivery job status changes",
-            "method": "hybrid"
+            "query": "retry failed job client object"
           },
           "observation": {
             "best_distance": 0.232,
@@ -224,37 +150,93 @@
               {
                 "source": "jobs-api.md",
                 "distance": 0.232,
+                "text": "s.\n\n## Retrying failed jobs\nFailed jobs are not retried automatically. Call `client.jobs.retry(job_id)` to requeue a failed job.\nA job can be retried up to 5 times; after that it is permanently marked `failed` and must be\nrecreated.\n\n## Deleting jobs\nJobs can only be deleted once they reach a termin"
+              },
+              {
+                "source": "jobs-api.md",
+                "distance": 0.232,
                 "text": "# Jobs API\n\n## Creating a job\n```python\nclient.jobs.create(name=\"my-job\", payload={\"key\": \"value\"}, priority=\"normal\")\n```\n\n`priority` accepts `low`, `normal`, or `high`. Jobs default to `normal` priority if not specified.\n\n## Job statuses\nA job moves through the following statuses: `queued` -> `run"
               },
               {
-                "source": "jobs-api.md",
-                "distance": 0.235,
-                "text": " a webhook URL in the dashboard to receive `job.completed` and `job.failed` events.\nWebhook payloads are signed with your webhook secret; verify the `X-Acme-Signature` header before\ntrusting the payload.\n"
-              },
-              {
-                "source": "jobs-api.md",
-                "distance": 0.237,
-                "text": "s.\n\n## Retrying failed jobs\nFailed jobs are not retried automatically. Call `client.jobs.retry(job_id)` to requeue a failed job.\nA job can be retried up to 5 times; after that it is permanently marked `failed` and must be\nrecreated.\n\n## Deleting jobs\nJobs can only be deleted once they reach a termin"
+                "source": "authentication.md",
+                "distance": 0.244,
+                "text": "|---|---:|---|\n| API key missing | `401` | Authentication failure |\n| API key invalid | `401` | Authentication failure |\n| API key revoked | `401` | Authentication failure |\n| API key valid but insufficient scope | `403` | Authorization failure |\n| Rate limit exceeded | `429` | Too many requests |\n\n"
               }
             ]
           },
           "tokens": {
-            "prompt": 491,
-            "completion": 10,
-            "total": 501
+            "prompt": 497,
+            "completion": 9,
+            "total": 506
           }
         },
         {
           "stop_reason": "model answered without calling final_answer",
           "tokens": {
-            "prompt": 748,
-            "completion": 136,
-            "total": 884
+            "prompt": 786,
+            "completion": 62,
+            "total": 848
           }
         }
       ],
-      "tokens": 1867,
-      "seconds": 4.39
+      "tokens": 1842,
+      "seconds": 3.952
+    },
+    {
+      "id": "T4",
+      "question": "How does webhook event delivery work for job status changes?",
+      "expected_method": "embedding",
+      "actual_first_method": "embedding",
+      "all_methods": [
+        "embedding"
+      ],
+      "correct": true,
+      "answer_preview": "Webhook event delivery for job status changes works by sending `job.completed` and `job.failed` events to a configured w",
+      "sources": [],
+      "steps": [
+        {
+          "tool": "retrieve",
+          "args": {
+            "method": "embedding",
+            "query": "webhook event delivery job status changes"
+          },
+          "observation": {
+            "best_distance": 0.303,
+            "chunks": [
+              {
+                "source": "jobs-api.md",
+                "distance": 0.303,
+                "text": " a webhook URL in the dashboard to receive `job.completed` and `job.failed` events.\nWebhook payloads are signed with your webhook secret; verify the `X-Acme-Signature` header before\ntrusting the payload.\n"
+              },
+              {
+                "source": "jobs-api.md",
+                "distance": 0.355,
+                "text": "# Jobs API\n\n## Creating a job\n```python\nclient.jobs.create(name=\"my-job\", payload={\"key\": \"value\"}, priority=\"normal\")\n```\n\n`priority` accepts `low`, `normal`, or `high`. Jobs default to `normal` priority if not specified.\n\n## Job statuses\nA job moves through the following statuses: `queued` -> `run"
+              },
+              {
+                "source": "jobs-api.md",
+                "distance": 0.38,
+                "text": "s.\n\n## Retrying failed jobs\nFailed jobs are not retried automatically. Call `client.jobs.retry(job_id)` to requeue a failed job.\nA job can be retried up to 5 times; after that it is permanently marked `failed` and must be\nrecreated.\n\n## Deleting jobs\nJobs can only be deleted once they reach a termin"
+              }
+            ]
+          },
+          "tokens": {
+            "prompt": 467,
+            "completion": 10,
+            "total": 477
+          }
+        },
+        {
+          "stop_reason": "model answered without calling final_answer",
+          "tokens": {
+            "prompt": 724,
+            "completion": 71,
+            "total": 795
+          }
+        }
+      ],
+      "tokens": 1272,
+      "seconds": 2.858
     },
     {
       "id": "T5",
@@ -265,7 +247,7 @@
         "bm25"
       ],
       "correct": true,
-      "answer_preview": "To install `acme-sdk` with async support, use the following pip command:\n\n```\npip install acme-sdk[async]\n```",
+      "answer_preview": "The pip install command for async support in acme-sdk is:\n\n```\npip install acme-sdk[async]\n```",
       "sources": [],
       "steps": [
         {
@@ -280,8 +262,8 @@
         {
           "tool": "retrieve",
           "args": {
-            "query": "acme-sdk async support pip install",
-            "method": "bm25"
+            "method": "bm25",
+            "query": "acme-sdk async support pip install"
           },
           "observation": {
             "best_distance": 0.075,
@@ -313,13 +295,13 @@
           "stop_reason": "model answered without calling final_answer",
           "tokens": {
             "prompt": 742,
-            "completion": 32,
-            "total": 774
+            "completion": 28,
+            "total": 770
           }
         }
       ],
-      "tokens": 1769,
-      "seconds": 3.422
+      "tokens": 1765,
+      "seconds": 3.899
     },
     {
       "id": "T6",
@@ -330,61 +312,52 @@
         "embedding"
       ],
       "correct": true,
-      "answer_preview": "Authentication and authorization are distinct but related concepts. Authentication verifies the validity of an API key, ",
+      "answer_preview": "Authentication and authorization are related but distinct concepts. Authentication verifies the identity of the API key,",
       "sources": [],
       "steps": [
         {
-          "tool": "recall_memory",
-          "args": {
-            "query": "authentication vs authorization conceptual difference"
-          },
-          "observation": {
-            "result": "no similar past question found"
-          }
-        },
-        {
           "tool": "retrieve",
           "args": {
-            "query": "authentication vs authorization conceptual difference",
+            "query": "authentication vs authorization",
             "method": "embedding"
           },
           "observation": {
-            "best_distance": 0.259,
+            "best_distance": 0.245,
             "chunks": [
               {
                 "source": "authentication.md",
-                "distance": 0.259,
+                "distance": 0.245,
                 "text": "## Authentication-related edge cases\n\nAuthentication and authorization are related but are not interchangeable.\n\nA request can be authenticated successfully while still being rejected because\nthe API key does not have sufficient scope. In that case, the key itself may be\nvalid even though the reques"
               },
               {
                 "source": "authentication.md",
-                "distance": 0.373,
+                "distance": 0.354,
                 "text": "rite` key can authenticate successfully but cannot perform an\n  administrative operation.\n- An invalid, missing, or revoked key is an authentication failure and returns\n  `401 Unauthorized`.\n\nDo not infer the required scope from the HTTP status code alone. The scope\nrequirement depends on the operat"
               },
               {
                 "source": "authentication.md",
-                "distance": 0.375,
-                "text": "returned, clients should read the `Retry-After` response\nheader and wait before retrying. Retrying immediately with the same request\ndoes not resolve the rate-limit condition.\n\n### Access key terminology\n\nThe terms `API key`, `access key`, and `bearer token` may appear in application\nconfiguration a"
+                "distance": 0.385,
+                "text": "g configurations should not be confused:\n\n```text\nAuthorization: Bearer YOUR_API_KEY"
               }
             ]
           },
           "tokens": {
-            "prompt": 487,
-            "completion": 9,
-            "total": 496
+            "prompt": 469,
+            "completion": 7,
+            "total": 476
           }
         },
         {
           "stop_reason": "model answered without calling final_answer",
           "tokens": {
-            "prompt": 704,
-            "completion": 130,
-            "total": 834
+            "prompt": 639,
+            "completion": 123,
+            "total": 762
           }
         }
       ],
-      "tokens": 1808,
-      "seconds": 3.96
+      "tokens": 1238,
+      "seconds": 3.641
     },
     {
       "id": "T7",
@@ -395,7 +368,7 @@
         "bm25"
       ],
       "correct": false,
-      "answer_preview": "When a client receives a `429 Too Many Requests` response due to rate limiting, it should read the `Retry-After` header.",
+      "answer_preview": "When an API returns a `429 Too Many Requests` response, the client should read the `Retry-After` header to determine how",
       "sources": [],
       "steps": [
         {
@@ -411,20 +384,20 @@
           "tool": "retrieve",
           "args": {
             "method": "bm25",
-            "query": "rate limit response headers"
+            "query": "rate limit response header"
           },
           "observation": {
-            "best_distance": 0.176,
+            "best_distance": 0.173,
             "chunks": [
+              {
+                "source": "troubleshooting.md",
+                "distance": 0.173,
+                "text": "# Rate Limiting & Troubleshooting Guide\n\nThis guide explains how rate limiting works in AcmeSDK and how to\ntroubleshoot common API errors.\n\n## Rate Limit Responses\n\nWhen the API returns a `429 Too Many Requests` response, read the\n`Retry-After` header to determine how long to wait before retrying.\n\n"
+              },
               {
                 "source": "authentication.md",
                 "distance": 0.176,
                 "text": "|---|---:|---|\n| API key missing | `401` | Authentication failure |\n| API key invalid | `401` | Authentication failure |\n| API key revoked | `401` | Authentication failure |\n| API key valid but insufficient scope | `403` | Authorization failure |\n| Rate limit exceeded | `429` | Too many requests |\n\n"
-              },
-              {
-                "source": "troubleshooting.md",
-                "distance": 0.204,
-                "text": "# Rate Limiting & Troubleshooting Guide\n\nThis guide explains how rate limiting works in AcmeSDK and how to\ntroubleshoot common API errors.\n\n## Rate Limit Responses\n\nWhen the API returns a `429 Too Many Requests` response, read the\n`Retry-After` header to determine how long to wait before retrying.\n\n"
               },
               {
                 "source": "troubleshooting.md",
@@ -443,13 +416,13 @@
           "stop_reason": "model answered without calling final_answer",
           "tokens": {
             "prompt": 809,
-            "completion": 51,
-            "total": 860
+            "completion": 47,
+            "total": 856
           }
         }
       ],
-      "tokens": 1879,
-      "seconds": 4.26
+      "tokens": 1875,
+      "seconds": 4.047
     }
   ]
 }
