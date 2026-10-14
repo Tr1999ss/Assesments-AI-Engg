@@ -472,3 +472,195 @@ rm agent_memory.json     # Mac/Linux
 | `final_report.md` | Full written-up findings |
 | `agent_memory.json` | Persistent long-term memory (grows across runs) |
 
+# Docs Search MCP Server (Week 9 · Track E)
+
+This exposes the RAG app's document search as a [Model Context Protocol](https://modelcontextprotocol.io)
+(MCP) tool. Any MCP host (ollmcp, Claude Desktop, a teammate's agent) can connect, **discover**
+the `search_docs` tool by itself, and call it, with no custom integration code on the host side.
+
+> Keep this file at the project root, **not** inside `docs/` (`ingest.py` indexes every `.md` in `docs/`).
+
+## How it fits together
+
+```
+HOST (the AI runs here)                        SERVER (this repo)
+┌──────────────────────────────┐  stdio/HTTP   ┌────────────────────────────┐
+│ LLM  ->  agent loop          │ ──JSON-RPC──> │ mcp_server.py              │
+│          MCP client          │ <──────────── │   tool: search_docs        │
+└──────────────────────────────┘               │   -> hybrid retrieval      │
+                                               │   -> ChromaDB index        │
+                                               └────────────────────────────┘
+```
+
+- The **host** runs the language model and decides when to call a tool.
+- The **server** only offers tools. It never writes the answer and doesn't know which AI is calling.
+  `search_docs` returns relevant passages; the host's model writes the answer and cites the source.
+- MCP is plumbing: it gives reuse and easy swapping, not better answers.
+
+## Tool reference
+
+`search_docs(question, top_k=3, method="hybrid")`
+
+| Parameter | Type | Default | Meaning |
+|---|---|---|---|
+| `question` | string | required | What to look up, in plain language or an exact term (e.g. `429`) |
+| `top_k` | integer | 3 | Passages to return (clamped to 1-10) |
+| `method` | string | `hybrid` | `hybrid` (meaning + keywords), `embedding`, or `bm25` |
+
+Returns a list of `{source, distance, text}`. `distance` is lower-is-better. For `hybrid` it is a
+display value derived from the fused ranking, not a true cosine distance.
+
+Recoverable errors come back as readable messages the model can act on:
+- index missing: "The document index doesn't exist yet. Run `python ingest.py`..."
+- unknown `method`: lists the valid options
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `mcp_server.py` | The MCP server (FastMCP). Exposes `search_docs` |
+| `raw_demo.py` | Talks to the server with raw JSON, no MCP library, to show the protocol |
+| `query.py` | Retrieval code the server reuses (`embedding`, `bm25`, `hybrid`) |
+| `ingest.py` | Builds the ChromaDB index from `docs/` |
+
+## Setup (Windows PowerShell, Python 3.12)
+
+```powershell
+py -3.12 -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt      # includes fastmcp
+ollama pull nomic-embed-text         # Ollama must be running: it embeds each query
+python ingest.py                     # build the index
+```
+
+## Run the server
+
+```powershell
+python mcp_server.py                 # stdio: a host launches it for you
+python mcp_server.py --http          # http://127.0.0.1:8000/mcp (this machine only)
+python mcp_server.py --http --lan    # http://0.0.0.0:8000/mcp (reachable by other machines)
+```
+
+Never `print()` to stdout in the server: with stdio, stdout carries the protocol messages.
+
+## See the raw protocol once
+
+```powershell
+python raw_demo.py
+```
+
+Run it from the project folder. It prints the four messages that make up MCP:
+
+| Step | Message | Meaning |
+|---|---|---|
+| 1 | `initialize` | Client says hello; server replies with its capabilities |
+| 2 | `notifications/initialized` | Client confirms (a notification: no reply) |
+| 3 | `tools/list` | "What can you do?" Server returns tool names and JSON schemas |
+| 4 | `tools/call` | "Do it." Server returns the result |
+
+The schema in step 3 is built from the function signature and docstring in `mcp_server.py`.
+That text is what the model reads to decide when to use the tool.
+
+## Use it from a host (example: ollmcp)
+
+```powershell
+pip install ollmcp
+$env:OLLMCP_API_KEY = "<your OpenRouter key>"     # env var: never written to disk, never commit it
+
+ollmcp mcp add docs-search -- C:\path\to\venv\Scripts\python.exe C:\path\to\mcp_server.py
+ollmcp --provider openrouter -m <model-id>
+```
+
+Use the venv's `python.exe` in the command: the host launches the server itself, so it needs the
+Python that has `fastmcp` and `chromadb` installed. In the client, `/tools` lists what was discovered.
+
+### Example session (from a real run)
+
+```
+❯ use tool docs-search.search_docs . "What does a 429 response mean?"
+
+🔧 Executing Tool docs-search.search_docs
+   Arguments: {"question": "What does a 429 response mean?"}
+
+🧑‍💻 Human-in-the-Loop Confirmation  ->  y
+
+✅ Tool Response (3 passages)
+   authentication.md    distance 0.232   "...Rate limit exceeded | 429 | Too many requests... A 429 response does not
+                                          indicate that the API key is invalid..."
+   troubleshooting.md   distance 0.235   "...429 | Rate limit exceeded..."
+   authentication.md    distance 0.238   "...clients should read the Retry-After response header and wait..."
+
+📝 Answer: A 429 means "Rate limit exceeded", not an invalid key. Read the Retry-After header, wait,
+   then retry. Retrying immediately does not resolve it.
+   Source: authentication.md
+```
+
+The host asked for approval before running the tool (Human-in-the-Loop is on by default), then
+the model answered from the returned passages and cited the source.
+
+## Add a second tool without changing any agent code
+
+```powershell
+ollmcp mcp add package-registry -- <command from the Track E server's README>
+ollmcp mcp list          # both servers registered
+ollmcp                   # restart; /tools now shows tools from both servers
+```
+
+<!-- TODO: fill in the real command and the tool names for the Track E package-registry server -->
+
+## Let someone else's agent call this server
+
+1. Run `python mcp_server.py --http --lan` and allow Python through the Windows firewall prompt.
+2. They register it from their machine:
+   ```powershell
+   ollmcp mcp add --transport http <your-name> http://<your-ip>:8000/mcp
+   ```
+3. Stop the server when you're done.
+
+`--lan` has **no authentication**: anyone on the network can call the tool. That is acceptable for a
+read-only demo over sample docs. Anything real needs auth (e.g. a bearer token) and HTTPS.
+
+## Example questions
+
+| Question | Expected | Tests |
+|---|---|---|
+| What does a 429 response mean? | Rate limit exceeded; key is not invalid; use Retry-After | Exact-code lookup (keyword search helps) |
+| I have a valid read-only key but tried a write. What error? | 403 (authorization), not 401 | Easily-confused status codes |
+| Do API keys expire automatically after 90 days? | No; 90 days is only a rotation recommendation | "Recommended" vs "enforced" |
+| What's the weather today? | "I don't know" | Out-of-scope handling |
+
+## Notes from testing
+
+- Discovery worked: the host found `search_docs` through `tools/list` with no hard-coded wiring.
+- With the `openrouter/free` router and a plain question, the model reasoned about using the tool but
+  produced no tool call. Naming the tool in the prompt made it call it. Whether a tool gets used
+  depends on the model, not on MCP.
+- The model answered from the retrieved passages and cited `authentication.md`.
+
+## Security
+
+- `search_docs` is read-only and returns text only. It can't change anything.
+- Keep Human-in-the-Loop on so every tool call is approved before it runs.
+- Retrieved passages are untrusted input to the model. A document containing hidden instructions
+  (for example in an HTML comment) can try to steer it (indirect prompt injection). Only index
+  documents you trust, and read what the model is being handed.
+- Pass API keys through environment variables. Don't commit keys, and don't pass `--api-key`, which
+  saves the key to a config file.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `can't open file 'raw_demo.py'` | Run commands from the project folder |
+| "document index doesn't exist yet" | Run `python ingest.py` |
+| Tool not listed in the host | Check the path in `ollmcp mcp add` points to the venv's `python.exe` and the real `mcp_server.py`; `ollmcp mcp list` |
+| Model never calls the tool | Turn thinking off (`/tm`), try a model with solid tool support, or name the tool in the prompt |
+| `402` credit error from OpenRouter | Use a free model, or lower Max Tokens with `/mc` |
+| Server breaks only under a host | Something printed to stdout; log to stderr instead |
+
+## Brief checklist (Week 9)
+
+- [x] The host uses a tool through MCP, discovered rather than hard-coded
+- [ ] A second tool added without changing agent code (Track E package-registry server)
+- [x] Own MCP server exposing one real capability (`search_docs`); another person's host can connect over HTTP
+- [x] Can explain where the AI runs: on the host; the server only returns passages

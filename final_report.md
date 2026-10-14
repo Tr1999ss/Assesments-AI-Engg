@@ -1,4 +1,4 @@
-# Track E — Trajectory Evals & Agent Failure Modes
+   # Track E — Trajectory Evals & Agent Failure Modes
 ## Final Report
 
 *Generated: 2026-09-27 17:22:20*
