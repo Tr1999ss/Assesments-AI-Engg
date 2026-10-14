@@ -3,3 +3,4 @@ ollama==0.3.3
 openai>=1.0.0
 python-dotenv>=1.0.0
 rank-bm25
+fastmcp
